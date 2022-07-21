@@ -1,0 +1,12 @@
+{
+    "server": {
+        "port": "5050"
+    },
+    "db": {
+        "host": "127.0.0.1",
+        "port": "5432",
+        "user": "user",
+        "password": "password",
+        "useSeperateCredentials": 1
+    }
+}
