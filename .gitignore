@@ -130,3 +130,4 @@ dist
 .pnp.*
 
 settings.json
+res/settings.json
