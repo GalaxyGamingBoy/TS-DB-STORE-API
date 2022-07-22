@@ -2,7 +2,7 @@
 
 import postgresql from "pg";
 import os from "os";
-import settings from "../res/settings.json";
+import settings from "../../res/settings.json";
 
 const { Pool } = postgresql;
 

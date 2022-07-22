@@ -1,18 +1,21 @@
 import settings from "../res/settings.json";
-import postgresql from "./postgresql";
+import postgresql from "./db/DBpostgresql";
+import DBpostgresql from "./db/DBpostgresql";
 import ProductManager from "./ProductManager";
 import Product from "./Product";
-import products from "../res/products.json";
 import { addProductErrors } from "./enums";
+import SQLQueries from "./db/SQLQueries";
 
 const express = require("express");
 const cors = require("cors");
 const env = require("env-var");
 const webApp = express();
 
-postgresql(async (connection) => {
+let SQLQuery: SQLQueries = new SQLQueries();
+
+const db = postgresql(async (connection) => {
     await connection.query(
-        "CREATE TABLE IF NOT EXISTS products (id bigserial primary key, name text, price int,  stock int"
+        "CREATE TABLE IF NOT EXISTS products (id bigserial primary key, name text, price int, stock int)"
     );
 });
 
@@ -28,44 +31,38 @@ webApp.get("/", (req, res) => {
     res.status(418).end("I am a teapot!");
 });
 
-webApp.get("/getProducts", (req, res) => {
-    res.status(200).end(JSON.stringify(products));
+webApp.get("/getProducts", async (req, res) => {
+    res.status(200).end(JSON.stringify(await db.query(SQLQuery.getProducts())));
 });
 
-webApp.get("/getProductByID", (req, res) => {
-    const id: string = req.query.id;
-
-    let productValue: any = productManager.getProductByID(Number(id));
-
-    if (productValue == 404) {
-        res.status(404).end(`Product with ID ${id}, not found`);
-    } else {
-        res.status(200).end(JSON.stringify(productValue));
-    }
+webApp.get("/getProductByID", async (req, res) => {
+    res.status(200).end(
+        JSON.stringify(await db.query(SQLQuery.getProductByID(req.query.id)))
+    );
 });
 
-webApp.get("/getProductByName", (req, res) => {
-    const name: string = req.query.name;
-
-    let productValue = productManager.getProductByName(name);
-
-    if (productValue == 404) {
-        res.status(404).end(`Product with name ${name}, not found`);
-    } else {
-        res.status(200).end(productValue);
-    }
+webApp.get("/getProductByName", async (req, res) => {
+    res.status(200).end(
+        JSON.stringify(
+            await db.query(SQLQuery.getProductByName(req.query.name))
+        )
+    );
 });
 
-webApp.get("/getProductByPrice", (req, res) => {
-    const price: string = req.query.price;
+webApp.get("/getProductByPrice", async (req, res) => {
+    res.status(200).end(
+        JSON.stringify(
+            await db.query(SQLQuery.getProductByPrice(req.query.price))
+        )
+    );
+});
 
-    let productValue = productManager.getProductByPrice(Number(price));
-
-    if (productValue == 404) {
-        res.status(404).end(`Product with price ${price}, not found`);
-    } else {
-        res.status(200).end(productValue);
-    }
+webApp.get("/getProductByStock", async (req, res) => {
+    res.status(200).end(
+        JSON.stringify(
+            await db.query(SQLQuery.getProductByStock(req.query.stock))
+        )
+    );
 });
 
 webApp.post("/addProduct", (req, res) => {
@@ -74,26 +71,13 @@ webApp.post("/addProduct", (req, res) => {
     const price: string = req.query.price;
     const stock: string = req.query.stock;
 
-    let addProductStatus: addProductErrors = productManager.addProduct(
-        new Product(
-            parseInt(id, 10),
-            name,
-            parseInt(price, 10),
-            parseInt(stock, 10)
+    DBpostgresql().query(
+        productManager.addProduct(
+            new Product(Number(id), name, Number(price), Number(stock))
         )
     );
 
-    switch (addProductStatus) {
-        case addProductErrors.BAD_REQUEST:
-            res.status(400).end("Bad Request!");
-            break;
-        case addProductErrors.CONFLICT:
-            res.status(409).end("Product ID Conflict!");
-            break;
-        default:
-            res.status(200).end("Product Added!");
-            break;
-    }
+    res.status(200).end(`Product added!`);
 });
 
 webApp.post("/debug/testProducts", (req, res) => {
@@ -110,11 +94,34 @@ webApp.post("/debug/testProducts", (req, res) => {
         );
     }
     if (debugPassword == internalDebugPassword) {
-        productManager.addProduct(new Product(1, "Product A", 1, 25));
-        productManager.addProduct(new Product(2, "Product B", 2, 50));
-        productManager.addProduct(new Product(3, "Product C", 4, 75));
-        productManager.addProduct(new Product(4, "Product D", 8, 100));
+        db.query(SQLQuery.addProduct(new Product(1, "Product A", 1, 25)));
+        db.query(SQLQuery.addProduct(new Product(2, "Product B", 2, 50)));
+        db.query(SQLQuery.addProduct(new Product(3, "Product C", 4, 75)));
+        db.query(SQLQuery.addProduct(new Product(4, "Product D", 8, 100)));
+
         res.status(200).end("Added Test Products");
+    } else {
+        res.status(401).end("Invalid password");
+    }
+});
+
+webApp.delete("/debug/removeAllproducts", (req, res) => {
+    const debugPassword: string = req.query.debugPassword;
+    var internalDebugPassword: string;
+    try {
+        internalDebugPassword = env
+            .get("STORE_DEBUG_PASSWORD")
+            .required()
+            .asString();
+    } catch (e) {
+        res.status(500).end(
+            "Administrator did not set DEBUG Password. Please notify them."
+        );
+    }
+    if (debugPassword == internalDebugPassword) {
+        db.query(SQLQuery.deleteAllProducts());
+        db.query(SQLQuery.resetPK());
+        res.status(200).end("Removed All Products");
     } else {
         res.status(401).end("Invalid password");
     }
