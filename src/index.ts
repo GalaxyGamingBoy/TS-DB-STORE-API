@@ -71,13 +71,46 @@ webApp.post("/addProduct", (req, res) => {
     const price: string = req.query.price;
     const stock: string = req.query.stock;
 
-    DBpostgresql().query(
+    db.query(
         productManager.addProduct(
             new Product(Number(id), name, Number(price), Number(stock))
         )
     );
 
     res.status(200).end(`Product added!`);
+});
+
+webApp.post("/changeProductName", async (req, res) => {
+    const selectedID = req.query.id;
+    const newName = req.query.name;
+
+    res.status(200).end(
+        JSON.stringify(
+            await db.query(SQLQuery.changeNameByID(selectedID, newName))
+        )
+    );
+});
+
+webApp.post("/changeProductPrice", async (req, res) => {
+    const selectedID = req.query.id;
+    const newPrice = req.query.price;
+
+    res.status(200).end(
+        JSON.stringify(
+            await db.query(SQLQuery.changePriceByID(selectedID, newPrice))
+        )
+    );
+});
+
+webApp.post("/changeProductStock", async (req, res) => {
+    const selectedID = req.query.id;
+    const newStock = req.query.stock;
+
+    res.status(200).end(
+        JSON.stringify(
+            await db.query(SQLQuery.changeStockByID(selectedID, newStock))
+        )
+    );
 });
 
 webApp.delete("/deleteProduct", async (req, res) => {

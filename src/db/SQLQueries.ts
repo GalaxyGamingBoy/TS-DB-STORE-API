@@ -25,6 +25,18 @@ export default class SQLQueries {
         return `INSERT INTO products (name, price, stock) VALUES ('${product.name}', ${product.price}, ${product.stock})`;
     }
 
+    changeNameByID(id: Number, name: string): string {
+        return `UPDATE products SET name = '${name}' WHERE id = ${id} RETURNING *`;
+    }
+
+    changePriceByID(id: Number, price: Number): string {
+        return `UPDATE products SET price = ${price} WHERE id = ${id} RETURNING *`;
+    }
+
+    changeStockByID(id: Number, stock: Number): string {
+        return `UPDATE products SET stock = ${stock} WHERE id = ${id} RETURNING *`;
+    }
+
     deleteAllProducts(): string {
         return "DELETE FROM products";
     }
