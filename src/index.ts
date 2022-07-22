@@ -80,6 +80,12 @@ webApp.post("/addProduct", (req, res) => {
     res.status(200).end(`Product added!`);
 });
 
+webApp.delete("/deleteProduct", async (req, res) => {
+    db.query(SQLQuery.deleteProductByID(req.query.id));
+    db.query(SQLQuery.rerollPK());
+    res.status(200).end(`Product deleted!`);
+});
+
 webApp.post("/debug/testProducts", (req, res) => {
     const debugPassword: string = req.query.debugPassword;
     var internalDebugPassword: string;
